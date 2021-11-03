@@ -15,3 +15,5 @@ rows:=[]Users{}
 db.Select(&rows,"SELECT id,name FROM users ORDER BY id")
 
 ~~~
+### 更新日志
+2021-11-3 v1.13.0 新增更多系统编译,支持sqlite 3.36.0
