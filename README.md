@@ -37,8 +37,7 @@ func main() {
     link= "./public/resource/db.db"
     debug = true
 ~~~
-然后
-在boot 下面boot.go文件里面加上
+然后在boot 下面boot.go文件里面加上
 ~~~
 _ "github.com/logoove/sqlite"
 ~~~
@@ -57,16 +56,18 @@ database:
     link: "./resource/db.db" #数据库路径根据自己的填写
     debug:  true
 ~~~
-,在internel/cmd/cmd.go 中加入
-~~~
-_ "github.com/logoove/sqlite"
-~~~
-即可,已经将驱动改成sqlite3,所以能够直接在goframe中使用.
+在internel/cmd文件夹中放入sqlite.go驱动文件,已经将驱动改成sqlite3,所以能够直接在goframe2.0中使用.驱动文件在examples里面
 
 ### 插入数据两个goframe版本一样
 ~~~
 id, _ := g.Model("user").Data(g.Map{"name": "john", "age": 1}).InsertAndGetId()
 ~~~
+
+### examples是例子
+gf17是gf1.7
+gflay是gf2.0
+sqlx是不使用框架
+sqlite.go是gf2.0驱动
 ### 更新日志
 
 2022-3-22 v1.15.3 新增win amd64编译,解决内存泄漏问题.
