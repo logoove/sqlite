@@ -26,6 +26,26 @@ db.Exec(`CREATE TABLE users (
 	fmt.Println(rows)
 ~~~
 
-goframe中只需在boot 下面go文件里面加上 `_ github.com/logoove/sqlite`即可在orm使用,不需要任何其他修改
+goframe1.16中只需在boot 下面go文件里面加上 `_ github.com/logoove/sqlite`即可在orm使用,不需要任何其他修改
+goframe2.0中,在manifeat/config/config.yaml配置
+~~~
+# 数据库连接配置
+database:
+  logger:
+    path:    "./temp/logs/sql"
+    level:   "all"
+    stdout:  true
+    ctxKeys: ["RequestId"]
+  default:
+    type: "sqlite"
+    link: "./resource/db.db" #数据库路径根据自己的填写
+    debug:  true
+~~~
+,在internel/cmd/cmd.go 中加入_ "github.com/logoove/sqlite"即可,已经将驱动改成sqlite3,所以能够直接在goframe中使用.
+插入数据
+~~~
+id, _ := g.Model("user").Data(g.Map{"name": "john", "age": 1}).InsertAndGetId()
+~~~
 ### 更新日志
+2022-3-22 v1.15.3 新增win amd64编译,解决内存泄漏问题.
 2021-11-3 v1.13.0 新增更多系统编译,支持sqlite 3.36.0

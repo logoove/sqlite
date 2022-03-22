@@ -47,7 +47,7 @@ var (
 )
 
 const (
-	driverName              = "sqlite"
+	driverName              = "sqlite3"
 	ptrSize                 = unsafe.Sizeof(uintptr(0))
 	sqliteLockedSharedcache = sqlite3.SQLITE_LOCKED | (1 << 8)
 )

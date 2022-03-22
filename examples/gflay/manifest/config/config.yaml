@@ -1,0 +1,43 @@
+server:
+  address:     ":8000"
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+  serverRoot:          "resource/public"
+  dumpRouterMap:       true
+  routeOverWrite:      true
+  accessLogEnabled:    false
+  accessLogPattern:    "access-{Ymd}.log"
+  sessionPath:         "./temp/sessions"    # Session文件存储目录
+logger:
+  level : "all"
+  stdout: true
+  path:    "./temp/logs/default"
+  ctxKeys: ["RequestId"]
+# 数据库连接配置
+database:
+  logger:
+    path:    "./temp/logs/sql"
+    level:   "all"
+    stdout:  true
+    ctxKeys: ["RequestId"]
+
+  default:
+    type: "sqlite"
+  #  link:   "mysql:root:mysql@tcp(127.0.0.1:3306)/gflay"
+    link: "./resource/db.db"
+    debug:  true
+# 模板引擎配置
+viewer:
+  indexLayout:     "index/index.html"
+  adminHomeLayout: "admin/home.html"
+  adminLayout:     "admin/index.html"
+# 内容设置
+setting:
+  title:       "拾人拾物"
+  keywords:    "寻人寻物"
+  description: "寻人寻物平台"
+  adminId:     1 # 管理员ID
+
+# 文件上传设置
+upload:
+  path: "upload"
