@@ -28,8 +28,6 @@ func main() {
 }  
 ~~~
 
-~~~
-
 ### goframe1.17
 
 配置在config/config.toml
