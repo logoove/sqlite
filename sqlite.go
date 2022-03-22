@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:generate go run generator.go
-//go:generate go fmt ./...
 
 package sqlite // import "modernc.org/sqlite"
 
@@ -48,7 +47,7 @@ var (
 )
 
 const (
-	driverName              = "sqlite3"
+	driverName              = "sqlite"
 	ptrSize                 = unsafe.Sizeof(uintptr(0))
 	sqliteLockedSharedcache = sqlite3.SQLITE_LOCKED | (1 << 8)
 )
@@ -492,20 +491,7 @@ func (s *stmt) exec(ctx context.Context, args []driver.NamedValue) (r driver.Res
 	var pstmt uintptr
 	var done int32
 	if ctx != nil && ctx.Done() != nil {
-		donech := make(chan struct{})
-
-		go func() {
-			select {
-			case <-ctx.Done():
-				atomic.AddInt32(&done, 1)
-				s.c.interrupt(s.c.db)
-			case <-donech:
-			}
-		}()
-
-		defer func() {
-			close(donech)
-		}()
+		defer interruptOnDone(ctx, s.c, &done)()
 	}
 
 	for psql := s.psql; *(*byte)(unsafe.Pointer(psql)) != 0 && atomic.LoadInt32(&done) == 0; {
@@ -589,20 +575,7 @@ func (s *stmt) query(ctx context.Context, args []driver.NamedValue) (r driver.Ro
 	var pstmt uintptr
 	var done int32
 	if ctx != nil && ctx.Done() != nil {
-		donech := make(chan struct{})
-
-		go func() {
-			select {
-			case <-ctx.Done():
-				atomic.AddInt32(&done, 1)
-				s.c.interrupt(s.c.db)
-			case <-donech:
-			}
-		}()
-
-		defer func() {
-			close(donech)
-		}()
+		defer interruptOnDone(ctx, s.c, &done)()
 	}
 
 	var allocs []uintptr
@@ -686,7 +659,13 @@ type tx struct {
 
 func newTx(c *conn) (*tx, error) {
 	r := &tx{c: c}
-	if err := r.exec(context.Background(), "begin"); err != nil {
+	var sql string
+	if c.beginMode != "" {
+		sql = "begin " + c.beginMode
+	} else {
+		sql = "begin"
+	}
+	if err := r.exec(context.Background(), sql); err != nil {
 		return nil, err
 	}
 
@@ -713,19 +692,7 @@ func (t *tx) exec(ctx context.Context, sql string) (err error) {
 	//TODO use t.conn.ExecContext() instead
 
 	if ctx != nil && ctx.Done() != nil {
-		donech := make(chan struct{})
-
-		go func() {
-			select {
-			case <-ctx.Done():
-				t.c.interrupt(t.c.db)
-			case <-donech:
-			}
-		}()
-
-		defer func() {
-			close(donech)
-		}()
+		defer interruptOnDone(ctx, t.c, nil)()
 	}
 
 	if rc := sqlite3.Xsqlite3_exec(t.c.tls, t.c.db, psql, 0, 0, 0); rc != sqlite3.SQLITE_OK {
@@ -733,6 +700,43 @@ func (t *tx) exec(ctx context.Context, sql string) (err error) {
 	}
 
 	return nil
+}
+
+// interruptOnDone sets up a goroutine to interrupt the provided db when the
+// context is canceled, and returns a function the caller must defer so it
+// doesn't interrupt after the caller finishes.
+func interruptOnDone(
+	ctx context.Context,
+	c *conn,
+	done *int32,
+) func() {
+	if done == nil {
+		var d int32
+		done = &d
+	}
+
+	donech := make(chan struct{})
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			// don't call interrupt if we were already done: it indicates that this
+			// call to exec is no longer running and we would be interrupting
+			// nothing, or even possibly an unrelated later call to exec.
+			if atomic.AddInt32(done, 1) == 1 {
+				c.interrupt(c.db)
+			}
+		case <-donech:
+		}
+	}()
+
+	// the caller is expected to defer this function
+	return func() {
+		// set the done flag so that a context cancellation right after the caller
+		// returns doesn't trigger a call to interrupt for some other statement.
+		atomic.AddInt32(done, 1)
+		close(donech)
+	}
 }
 
 type conn struct {
@@ -744,6 +748,7 @@ type conn struct {
 	sync.Mutex
 
 	writeTimeFormat string
+	beginMode       string
 }
 
 func newConn(dsn string) (*conn, error) {
@@ -806,6 +811,14 @@ func applyQueryParams(c *conn, query string) error {
 		}
 		c.writeTimeFormat = f
 		return nil
+	}
+
+	if v := q.Get("_txlock"); v != "" {
+		lower := strings.ToLower(v)
+		if lower != "deferred" && lower != "immediate" && lower != "exclusive" {
+			return fmt.Errorf("unknown _txlock %q", v)
+		}
+		c.beginMode = v
 	}
 
 	return nil
@@ -1387,6 +1400,27 @@ func newDriver() *Driver { return &Driver{} }
 // efficient re-use.
 //
 // The returned connection is only used by one goroutine at a time.
+//
+// If name contains a '?', what follows is treated as a query string. This
+// driver supports the following query parameters:
+//
+// _pragma: Each value will be run as a "PRAGMA ..." statement (with the PRAGMA
+// keyword added for you). May be specified more than once. Example:
+// "_pragma=foreign_keys(1)" will enable foreign key enforcement. More
+// information on supported PRAGMAs is available from the SQLite documentation:
+// https://www.sqlite.org/pragma.html
+//
+// _time_format: The name of a format to use when writing time values to the
+// database. Currently the only supported value is "sqlite", which corresponds
+// to format 7 from https://www.sqlite.org/lang_datefunc.html#time_values,
+// including the timezone specifier. If this parameter is not specified, then
+// the default String() format will be used.
+//
+// _txlock: The locking behavior to use when beginning a transaction. May be
+// "deferred", "immediate", or "exclusive" (case insensitive). The default is to
+// not specify one, which SQLite maps to "deferred". More information is
+// available at
+// https://www.sqlite.org/lang_transaction.html#deferred_immediate_and_exclusive_transactions
 func (d *Driver) Open(name string) (driver.Conn, error) {
 	return newConn(name)
 }
