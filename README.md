@@ -1,8 +1,8 @@
 # sqlite
 
-一个不使用cgo的database/sql标准sqlite3驱动,原驱动`modernc.org/sqlite`,但是速度不行,在github上边没有,就从gitlab搬迁过来,同时修改了驱动名称为sqlite3,这样不用任何修改,就能在goframe框架中使用.
+一个不使用cgo的database/sql标准sqlite3驱动,原驱动`modernc.org/sqlite`,增加对goframe2+框架的支持(最新goframe已经有不使用cgo驱动了).
 
-### 非框架使用方法
+### 常规使用方法
 ~~~
 	"github.com/jmoiron/sqlx"
 	_ "github.com/logoove/sqlite"
@@ -15,7 +15,7 @@ type User struct {
 }
 
 func main() {
-	db, _ = sqlx.Open("sqlite3", "./db.db")
+	db, _ = sqlx.Open("sqlite", "./db.db")
 	db.Exec(`CREATE TABLE users (
   "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   "name" char(15) NOT NULL
@@ -28,47 +28,18 @@ func main() {
 }  
 ~~~
 
-### goframe1.17
-
-配置在config/config.toml
-~~~
-[database]
-	type= "sqlite"
-    link= "./public/resource/db.db"
-    debug = true
-~~~
-然后在boot 下面boot.go文件里面加上
-~~~
-_ "github.com/logoove/sqlite"
-~~~
-### goframe2.0
+### goframe2.0+使用方法
 在manifeat/config/config.yaml配置
 ~~~
 # 数据库连接配置
 database:
-  logger:
-    path:    "./temp/logs/sql"
-    level:   "all"
-    stdout:  true
-    ctxKeys: ["RequestId"]
   default:
     type: "sqlite"
     link: "./resource/db.db" #数据库路径根据自己的填写
     debug:  true
 ~~~
-在internel/cmd文件夹中放入sqlite.go驱动文件,已经将驱动改成sqlite3,所以能够直接在goframe2.0中使用.驱动文件在examples里面
-
-### 插入数据两个goframe版本一样
-~~~
-id, _ := g.Model("user").Data(g.Map{"name": "john", "age": 1}).InsertAndGetId()
-~~~
-
-### examples是例子
-gf17是gf1.7
-gflay是gf2.0
-sqlx是不使用框架
-sqlite.go是gf2.0驱动
 ### 更新日志
+2023-10-09 v1.16.1 修复对goframe支持,更新到gitlab.com/cznic/sqlite最新1.26同步.对于goframe2以下版本可能不能使用.
 
 2022-3-22 v1.15.3 新增win amd64编译,解决内存泄漏问题.
 

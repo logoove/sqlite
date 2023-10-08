@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
@@ -628,7 +627,7 @@ func pthForSUT(sut driver.SUT, sf int) string {
 }
 
 func dbGen(sut driver.SUT, sf int) (err error) {
-	if pseudotext, err = ioutil.ReadFile(filepath.Join("testdata", "pseudotext")); err != nil {
+	if pseudotext, err = os.ReadFile(filepath.Join("testdata", "pseudotext")); err != nil {
 		return fmt.Errorf("Run this program with -pseudotext: %v", err)
 	}
 
