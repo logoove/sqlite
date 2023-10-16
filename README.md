@@ -31,12 +31,27 @@ func main() {
 ### goframe2.0+使用方法
 在manifeat/config/config.yaml配置
 ~~~
+_ "github.com/logoove/go/sqlite" //加在internal\cmd\cmd.go文件中
+
 # 数据库连接配置
 database:
   default:
     type: "sqlite"
     link: "./resource/db.db" #数据库路径根据自己的填写
     debug:  true
+~~~
+
+### goframe2.0+ 非配置
+~~~
+"github.com/gogf/gf/v2/database/gdb"
+_ "github.com/logoove/go/sqlite" //这是专门用于goframe2.0以上的驱动, 单文件写在main.go中, mvc架构放在internal\cmd\cmd.go
+
+db, _ := gdb.New(gdb.ConfigNode{
+		Link: "sqlite::@file(xx/db.db)", //支持相对路径和绝对路径
+	})
+db.SetDebug(true) //可以显示sql语句
+list, _ := db.Model("zanzhu").Where("1=1").Order("id desc").Limit(page, pagesize).All() //简单查询, 可以不用建立数据表结构体
+
 ~~~
 ### 更新日志
 2023-10-09 v1.16.1 修复对goframe支持,更新到gitlab.com/cznic/sqlite最新1.26同步.对于goframe2以下版本可能不能使用.
