@@ -51,16 +51,24 @@ edit:
 	@touch log
 	@if [ -f "Session.vim" ]; then gvim -S & else gvim -p Makefile *.c *.go & fi
 
+FN=vfs_$(shell go env GOOS)_$(shell go env GOARCH).go
+
 editor:
-	ccgo -o vfs_$(shell go env GOOS)_$(shell go env GOARCH).go c/vfs.c -I../testdata/sqlite-amalgamation-3390300 \
-		-lmodernc.org/sqlite/lib -pkgname vfs -nocapi \
-		-export-externs X -D SQLITE_OS_UNIX \
+	ccgo -o $(FN) c/vfs.c -Isqlite-amalgamation-3450200 \
+		-D SQLITE_OS_UNIX \
+		-extended-errors \
+		-hide=vfsAccess \
+		-hide=vfsClose \
+		-hide=vfsFileSize \
 		-hide=vfsFullPathname \
 		-hide=vfsOpen \
 		-hide=vfsRead \
-		-hide=vfsAccess \
-		-hide=vfsFileSize \
-		-hide=vfsClose
+		-ignore-link-errors \
+		-import modernc.org/sqlite/lib \
+		--package-name vfs \
+		--prefix-external X
+	sed -i 's/\<sqlite3_snprintf\>/sqlite3.Xsqlite3_snprintf/' $(FN)
+	sed -i 's/\<sqlite3_malloc\>/sqlite3.Xsqlite3_malloc/' $(FN)
 	go build -v
 	gofmt -l -s -w *.go
 	go test -o /dev/null -c

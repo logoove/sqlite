@@ -207,7 +207,7 @@ static int vfsFlushBuffer(VFSFile *p){
 /*
 ** Close a file.
 */
-static int vfsClose(sqlite3_file *pFile){
+int vfsClose(sqlite3_file *pFile){
   hook
   int rc;
   VFSFile *p = (VFSFile*)pFile;
@@ -220,7 +220,7 @@ static int vfsClose(sqlite3_file *pFile){
 /*
 ** Read data from a file.
 */
-static int vfsRead(
+int vfsRead(
   sqlite3_file *pFile, 
   void *zBuf, 
   int iAmt, 
@@ -344,7 +344,7 @@ static int vfsSync(sqlite3_file *pFile, int flags){
 /*
 ** Write the size of the file in bytes to *pSize.
 */
-static int vfsFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
+int vfsFileSize(sqlite3_file *pFile, sqlite_int64 *pSize){
   hook
   VFSFile *p = (VFSFile*)pFile;
   int rc;                         /* Return code from fstat() call */
@@ -405,7 +405,7 @@ static int vfsDeviceCharacteristics(sqlite3_file *pFile){
 /*
 ** Open a file handle.
 */
-static int vfsOpen(
+int vfsOpen(
   sqlite3_vfs *pVfs,              /* VFS */
   const char *zName,              /* File to open, or 0 for a temp file */
   sqlite3_file *pFile,            /* Pointer to VFSFile struct to populate */
@@ -513,7 +513,7 @@ static int vfsDelete(sqlite3_vfs *pVfs, const char *zPath, int dirSync){
 ** Query the file-system to see if the named file exists, is readable or
 ** is both readable and writable.
 */
-static int vfsAccess(
+int vfsAccess(
   sqlite3_vfs *pVfs, 
   const char *zPath, 
   int flags, 
@@ -547,7 +547,7 @@ static int vfsAccess(
 **   1. Path components are separated by a '/'. and 
 **   2. Full paths begin with a '/' character.
 */
-static int vfsFullPathname(
+int vfsFullPathname(
   sqlite3_vfs *pVfs,              /* VFS */
   const char *zPath,              /* Input path (possibly a relative path) */
   int nPathOut,                   /* Size of output buffer in bytes */
