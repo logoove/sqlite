@@ -1,4 +1,4 @@
-module modernc.org/sqlite
+module github.com/logoove/sqlite
 
 go 1.23.0
 
